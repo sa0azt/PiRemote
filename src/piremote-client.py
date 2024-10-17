@@ -11,17 +11,20 @@ import configparser
 import fnmatch
 import threading
 
-io_pwr = 23
-io_input1 = 7
-io_input2 = 0
-io_input3 = 0
-io_output1 = 0
-io_output2 = 0
-io_output3 = 0
+# PiRemoteHAT+ R2B Pinout
+io_pwr = 27
+io_input1 = 17
+io_input2 = 22
+io_input3 = 23
+io_output1 = 24
+io_output2 = 25
+io_output3 = 26
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 GPIO.setup(io_pwr, GPIO.OUT)
-GPIO.setup(io_input1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(io_input1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(io_output1, GPIO.OUT)
+GPIO.output(io_output1, GPIO.LOW)
 
 config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split(',')]})
 config.read('piremote.conf')
@@ -95,10 +98,8 @@ class CtrlTCPClient(threading.Thread):
                         dataReceived = select.select([client_socket], [], [], 0.5)
                         if dataReceived[0]:
                             data = client_socket.recv(1024)
-                            #print(data)
                             if fnmatch.fnmatch(str(data), '* #[0-9] *'):
                                 SwitchRadio(str(data))
-                            sys.stderr.write('DEBUG: '.format(data))
                             ser.write(data)
                     except socket.error as msg:
                         sys.stderr.write('ERROR: {}\n'.format(msg))
