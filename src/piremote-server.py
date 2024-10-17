@@ -77,7 +77,6 @@ if __name__ == '__main__':
                         data = client_socket.recv(1024)
                         if not data:
                             break
-                        sys.stderr.write('DEBUG: '.format(data))
                         ser.write(data)
                     except socket.error as msg:
                         sys.stderr.write('ERROR: {}\n'.format(msg))
