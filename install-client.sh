@@ -36,9 +36,9 @@ grep -q "dtoverlay=wm8960-soundcard" /boot/firmware/config.txt || \
   echo "dtoverlay=wm8960-soundcard" >> /boot/firmware/config.txt
 
 mkdir /etc/piremote || true
-cp src/client/*.conf /etc/piremote
-cp src/client/piremote-client.py /etc/piremote
-cp src/client/piremote.service /etc/systemd/system/
+cp client/*.conf /etc/piremote
+cp client/piremote-client.py /etc/piremote
+cp client/piremote.service /etc/systemd/system/
 
 systemctl daemon-reload
 systemctl enable piremote.service
