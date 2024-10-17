@@ -12,6 +12,7 @@ if [ "x${is_Raspberry}" != "xRaspberry" ] ; then
 fi
 
 apt update
+apt upgrade -y
 apt-get -y install python3 python3-pip remotetrx
 apt-get -y install i2c-tools alsa-utils
 pip install pyserial --break-system-packages
