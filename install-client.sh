@@ -12,7 +12,6 @@ if [ "x${is_Raspberry}" != "xRaspberry" ] ; then
 fi
 
 apt update
-apt upgrade -y
 apt-get -y install python3 python3-pip remotetrx
 apt-get -y install i2c-tools alsa-utils
 pip install pyserial --break-system-packages
@@ -26,6 +25,9 @@ grep -q "dtoverlay=i2s-mmap" /boot/firmware/config.txt || \
 
 grep -q "enable_uart=1" /boot/firmware/config.txt || \
   echo "enable_uart=1" >> /boot/firmware/config.txt
+
+grep -q "dtoverlay=disable-bt" /boot/firmware/config.txt || \
+  echo "dtoverlay=disable-bt" >> /boot/firmware/config.txt
 
 grep -q "dtparam=i2s=on" /boot/firmware/config.txt || \
   echo "dtparam=i2s=on" >> /boot/firmware/config.txt
@@ -48,6 +50,7 @@ systemctl daemon-reload
 systemctl enable piremote.service
 systemctl disable remotetrx
 systemctl disable svxlink
+systemctl disable hciuart
 
 echo "------------------------------------------------------"
 echo "Please reboot to apply all settings!"
