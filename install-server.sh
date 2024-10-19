@@ -27,6 +27,9 @@ grep -q "dtoverlay=i2s-mmap" /boot/firmware/config.txt || \
 grep -q "enable_uart=1" /boot/firmware/config.txt || \
   echo "enable_uart=1" >> /boot/firmware/config.txt
 
+grep -q "dtoverlay=disable-bt" /boot/firmware/config.txt || \
+  echo "dtoverlay=disable-bt" >> /boot/firmware/config.txt
+
 grep -q "dtparam=i2s=on" /boot/firmware/config.txt || \
   echo "dtparam=i2s=on" >> /boot/firmware/config.txt
 
@@ -49,6 +52,7 @@ systemctl daemon-reload
 systemctl enable piremote.service
 systemctl enable remotetrx
 systemctl disable svxlink
+systemctl disable hciuart
 
 echo "------------------------------------------------------"
 echo "Please reboot to apply all settings!"
