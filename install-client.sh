@@ -19,6 +19,7 @@ pip install pyserial --break-system-packages
 sed -i -e 's:#dtparam=i2c_arm=on:dtparam=i2c_arm=on:g' /boot/firmware/config.txt || true
 sed -i -e 's:dtparam=audio=on:dtparam=audio=off:g' /boot/firmware/config.txt || true
 sed -i -e 's:dtoverlay=vc4-kms-v3d:#dtoverlay=vc4-kms-v3d:g' /boot/firmware/config.txt || true
+sed -i -e 's:console=serial0,115200::g' /boot/firmware/cmdline.txt || true
 
 grep -q "dtoverlay=i2s-mmap" /boot/firmware/config.txt || \
   echo "dtoverlay=i2s-mmap" >> /boot/firmware/config.txt
