@@ -1,5 +1,5 @@
 [Unit]
-Description=PiRemote Service
+Description=PiRemote Client
 After=multi-user.target
 Conflicts=getty@tty1.service
 
@@ -10,6 +10,8 @@ WorkingDirectory=/etc/piremote
 StandardInput=tty-force
 StandardOutput=append:/var/log/piremote.log
 StandardError=append:/var/log/piremote-error.log
+User=piremote
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

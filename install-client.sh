@@ -42,6 +42,9 @@ grep -q "dtparam=spi=on" /boot/firmware/config.txt || \
 grep -q "dtoverlay=wm8960-soundcard" /boot/firmware/config.txt || \
   echo "dtoverlay=wm8960-soundcard" >> /boot/firmware/config.txt
 
+useradd -M piremote
+usermod -a -G dailout piremote
+
 mkdir /etc/piremote || true
 cp client/*.conf /etc/piremote
 cp client/piremote-client.py /etc/piremote
