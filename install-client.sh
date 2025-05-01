@@ -11,10 +11,9 @@ if [ "x${is_Raspberry}" != "xRaspberry" ] ; then
   exit 1
 fi
 
-apt update
-apt-get -y install python3 python3-pip remotetrx
-apt-get -y install i2c-tools alsa-utils
-pip install pyserial --break-system-packages
+sudo apt update
+sudo apt install -y python3 python3-pip python3-serial python3-rpi.gpio python3-pyaudio portaudio19-dev libopus-dev build-essential i2c-tools alsa-utils
+sudo pip3 install opuslib pyserial pyaudio
 
 sed -i -e 's:#dtparam=i2c_arm=on:dtparam=i2c_arm=on:g' /boot/firmware/config.txt || true
 sed -i -e 's:dtparam=audio=on:dtparam=audio=off:g' /boot/firmware/config.txt || true
@@ -47,13 +46,11 @@ usermod -a -G dailout piremote
 
 mkdir /etc/piremote || true
 cp client/*.conf /etc/piremote
-cp client/piremote-client.py /etc/piremote
+cp client/client.py /etc/piremote
 cp client/piremote.service /etc/systemd/system/
 
 systemctl daemon-reload
 systemctl enable piremote.service
-systemctl disable remotetrx
-systemctl disable svxlink
 systemctl disable hciuart
 
 echo "------------------------------------------------------"
