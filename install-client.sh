@@ -42,7 +42,7 @@ grep -q "dtoverlay=wm8960-soundcard" /boot/firmware/config.txt || \
   echo "dtoverlay=wm8960-soundcard" >> /boot/firmware/config.txt
 
 useradd -M piremote
-usermod -a -G dailout piremote
+usermod -a -G uucp piremote
 
 mkdir /etc/piremote || true
 cp client/*.conf /etc/piremote
