@@ -5,7 +5,7 @@ Conflicts=getty@tty1.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /etc/piremote/piremote-server.py
+ExecStart=/usr/bin/python3 /etc/piremote/server.py
 WorkingDirectory=/etc/piremote
 StandardInput=tty-force
 StandardOutput=append:/var/log/piremote.log
