@@ -12,7 +12,7 @@ if [ "x${is_Raspberry}" != "xRaspberry" ] ; then
 fi
 
 sudo apt update
-sudo apt install -y python3 python3-pip python3-serial python3-rpi.gpio python3-pyaudio portaudio19-dev libopus-dev build-essential i2c-tools alsa-utils libopus0 libopus-dev
+sudo apt install -y python3 python3-pip python3-serial python3-rpi-lgpio python3-pyaudio portaudio19-dev libopus-dev build-essential i2c-tools alsa-utils libopus0 libopus-dev
 sudo pip3 install --break-system-packages opuslib
 
 sed -i -e 's:#dtparam=i2c_arm=on:dtparam=i2c_arm=on:g' /boot/firmware/config.txt || true
@@ -45,7 +45,7 @@ useradd -M piremote
 usermod -a -G uucp piremote
 
 mkdir /etc/piremote || true
-cp client/*.conf /etc/piremote
+cp client/client.conf /etc/piremote
 cp client/client.py /etc/piremote
 cp client/piremote.service /etc/systemd/system/
 
