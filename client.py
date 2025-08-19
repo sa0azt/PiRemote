@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import argparse
 import configparser
 import logging
@@ -13,11 +14,9 @@ import serial.threaded
 import RPi.GPIO as GPIO
 from audio import AudioClient
 
-# GPIO pins
+
 io_pwr = 27            # Power control pin
 io_button = 17         # Power toggle button pin
-
-# Globals for service instances and state
 serial_proto = None
 ser = None
 reader = None
@@ -29,14 +28,12 @@ current_trx_index = 0
 debug = False
 cfg = None
 
-# Set up GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 GPIO.setup(io_pwr, GPIO.OUT)
 GPIO.setup(io_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 class SerialToNet(serial.threaded.Protocol):
-    """Forward serial data to the current TCP radio socket."""
     def __init__(self, debug=False):
         self.socket = None
         self.debug = debug
@@ -65,7 +62,6 @@ class SerialToNet(serial.threaded.Protocol):
             self.socket = None
 
 class RadioBridge(threading.Thread):
-    """Serial-TCP radio bridge client with failover support."""
     def __init__(self, trx_list, ser, ser_proto, debug=False):
         super().__init__(daemon=True)
         self.trx_list = trx_list
@@ -77,7 +73,6 @@ class RadioBridge(threading.Thread):
 
     def run(self):
         while not self.stop_event.is_set():
-            # Get current TRX from list
             if not self.trx_list:
                 logging.error("No TRX servers configured")
                 break
@@ -103,10 +98,8 @@ class RadioBridge(threading.Thread):
                     logging.info(f"Radio bridge connected to {host}:{port}")
                     self.ser_proto.set_socket(sock)
                     
-                    # Reset TRX index on successful connection
                     self.current_trx_index = 0
                     
-                    # Handle data exchange
                     while not self.stop_event.is_set():
                         try:
                             ready, _, _ = select.select([sock], [], [], 0.5)
@@ -139,7 +132,6 @@ class RadioBridge(threading.Thread):
                 logging.info("Radio bridge disconnected")
 
     def _next_trx(self):
-        """Move to next TRX in list for failover."""
         self.current_trx_index = (self.current_trx_index + 1) % len(self.trx_list)
         if self.current_trx_index == 0:
             logging.info("Cycled through all TRX servers, starting over")
@@ -148,12 +140,10 @@ class RadioBridge(threading.Thread):
         self.stop_event.set()
         self.join(timeout=5.0)
 
-# Power control function
 def Pwr(state: bool):
     GPIO.output(io_pwr, GPIO.HIGH if state else GPIO.LOW)
     logging.info(f"Power {'ON' if state else 'OFF'}")
 
-# Helper to properly close serial connection
 def ser_close():
     global ser, reader, serial_proto
     
@@ -173,11 +163,9 @@ def ser_close():
         
     serial_proto = None
 
-# Helper to open serial port and start reader
 def ser_open():
     global ser, serial_proto, reader
     
-    # Close any existing connection first
     ser_close()
     
     serial_port = cfg.get('CLIENT', 'SERIAL_PORT')
@@ -205,27 +193,22 @@ def ser_open():
         ser_close()
         return False
 
-# Toggle all services when the power button is pressed
 def toggle_power(channel=None):
     global powered_on, radio_bridge, audio_client
     
     if not powered_on:
-        # Power on: setup serial, start services
         logging.info("Powering on...")
         Pwr(True)
         
-        # Setup serial connection
         if not ser_open():
             logging.error("Failed to open serial port, aborting power on")
             Pwr(False)
             return
             
         try:
-            # Start radio bridge with failover support
             radio_bridge = RadioBridge(trx_list, ser, serial_proto, debug)
             radio_bridge.start()
             
-            # Start audio client (full duplex)
             audio_client = AudioClient(cfg)
             audio_client.start()
             
@@ -234,7 +217,6 @@ def toggle_power(channel=None):
             
         except Exception as e:
             logging.error(f"Failed to start services: {e}")
-            # Cleanup on failure
             if radio_bridge:
                 radio_bridge.stop()
                 radio_bridge = None
@@ -244,7 +226,6 @@ def toggle_power(channel=None):
             ser_close()
             Pwr(False)
     else:
-        # Power off: stop services and power down
         logging.info("Powering off...")
         
         if radio_bridge:
@@ -261,22 +242,18 @@ def toggle_power(channel=None):
         logging.info("System powered off")
 
 def cleanup_and_exit():
-    """Clean shutdown of all resources."""
     global powered_on
     
     logging.info("Cleaning up...")
     
-    # Remove GPIO event detection
     try:
         GPIO.remove_event_detect(io_button)
     except:
         pass
         
-    # Power off if needed
     if powered_on:
         toggle_power()
-        
-    # GPIO cleanup
+
     try:
         GPIO.cleanup()
     except:
@@ -289,7 +266,6 @@ def signal_handler(signum, frame):
     cleanup_and_exit()
     sys.exit(0)
 
-# Main entry point
 def main():
     global cfg, trx_list, debug
     
@@ -298,7 +274,6 @@ def main():
                        help='Path to config file')
     args = parser.parse_args()
 
-    # Load config
     cfg = configparser.ConfigParser(
         converters={'list': lambda x: [i.strip() for i in x.split(',')]}
     )
@@ -309,7 +284,6 @@ def main():
         print(f"Failed to read config file {args.config}: {e}")
         sys.exit(1)
 
-    # Validate required sections
     required_sections = ['MAIN', 'CLIENT', 'audio']
     for section in required_sections:
         if section not in cfg:
@@ -324,7 +298,6 @@ def main():
         print(f"Configuration error: {e}")
         sys.exit(1)
 
-    # Logging setup
     debug = cfg.getboolean('MAIN', 'DEBUG', fallback=False)
     level = 'DEBUG' if debug else cfg.get('MAIN', 'LOG_LEVEL', fallback='INFO').upper()
     logging.basicConfig(
@@ -335,20 +308,16 @@ def main():
     logging.info("PiRemote Client starting...")
     logging.info(f"Configured TRX servers: {trx_list}")
 
-    # Set up signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
-        # Set up button event for toggling power
         GPIO.add_event_detect(io_button, GPIO.FALLING, 
                              callback=toggle_power, bouncetime=500)
 
-        # Initial state: ensure power off
         Pwr(False)
         logging.info("Ready. Press power button to start...")
 
-        # Block indefinitely
         signal.pause()
         
     except Exception as e:

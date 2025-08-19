@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import signal
 import sys
 import socket
@@ -11,7 +12,6 @@ import logging
 from audio import AudioServer
 
 class SerialToNet(serial.threaded.Protocol):
-    """Forward serial data to the current TCP client socket."""
     def __init__(self):
         self.socket = None
         self.lock = threading.Lock()
@@ -51,7 +51,6 @@ def radio_bridge(listen_ip, listen_port, serial_proto, stop_event):
                 client, addr = srv.accept()
                 logging.info(f"Serial client connected from {addr}")
                 
-                # Set socket options
                 for opt in [
                     (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
                     (socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -64,7 +63,6 @@ def radio_bridge(listen_ip, listen_port, serial_proto, stop_event):
                 client.settimeout(1.0)  # Non-blocking recv with timeout
                 serial_proto.set_socket(client)
                 
-                # Handle client data
                 while not stop_event.is_set():
                     try:
                         data = client.recv(1024)
@@ -111,7 +109,6 @@ def signal_handler(signum, frame):
 def main():
     global stop_event, audio_server, reader
     
-    # Load config
     cfg = configparser.ConfigParser()
     try:
         cfg.read("/etc/piremote/piremote.conf")
@@ -119,7 +116,6 @@ def main():
         logging.error(f"Failed to read config: {e}")
         sys.exit(1)
 
-    # Logging
     log_level = cfg.get("logging", "level", fallback="INFO")
     logging.basicConfig(
         level=getattr(logging, log_level.upper()),
@@ -127,7 +123,6 @@ def main():
     )
     logging.info("PiRemote Server starting...")
 
-    # Get configuration values with error checking
     try:
         serial_port = cfg.get("serial", "port")
         serial_baud = cfg.getint("serial", "baudrate")
@@ -137,21 +132,17 @@ def main():
         logging.error(f"Configuration error: {e}")
         sys.exit(1)
 
-    # Initialize globals
     stop_event = threading.Event()
     audio_server = None
     reader = None
 
-    # Set up signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
-        # Start audio server (full duplex)
         audio_server = AudioServer(config_path="/etc/piremote/piremote.conf")
         audio_server.start()
 
-        # Set up serial connection
         ser = serial.serial_for_url(serial_port, do_not_open=True)
         ser.baudrate = serial_baud
         ser.bytesize = 8
@@ -167,12 +158,10 @@ def main():
             logging.error(f"Could not open serial port {serial_port}: {e}")
             sys.exit(1)
 
-        # Start serial protocol handler
         serial_proto = SerialToNet()
         reader = serial.threaded.ReaderThread(ser, serial_proto)
         reader.start()
 
-        # Start radio bridge in background thread
         radio_thread = threading.Thread(
             target=radio_bridge,
             args=(radio_ip, radio_port, serial_proto, stop_event),
@@ -182,7 +171,6 @@ def main():
 
         logging.info("All services started successfully")
         
-        # Main loop - wait for shutdown signal
         try:
             while not stop_event.is_set():
                 stop_event.wait(1.0)
@@ -192,7 +180,6 @@ def main():
     except Exception as e:
         logging.error(f"Fatal error: {e}")
     finally:
-        # Cleanup
         logging.info("Shutting down...")
         stop_event.set()
         
