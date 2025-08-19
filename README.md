@@ -57,11 +57,9 @@ Update key settings:
 ```ini
 [CLIENT]
 TRX_LIST=radio1.example.com:5000,radio2.example.com:5000
-
-[audio]
-server_ip=192.168.1.100
-tx_port=5001
-rx_port=5002
+SERVER_IP=192.168.1.100
+AUDIO_TX_PORT=5001
+AUDIO_RX_PORT=5002
 ```
 
 ### 4. Start Services
@@ -101,14 +99,15 @@ Raspberry Pi Connections:
 
 ### Configure Devices
 ```ini
-[audio]
+[CLIENT]
 # Client side (front panel)
-input_device=1     # Microphone
-output_device=0    # Speaker
+AUDIO_INPUT_DEVICE=1     # Microphone
+AUDIO_OUTPUT_DEVICE=0    # Speaker
 
+[SERVER]
 # Server side (radio)  
-input_device=2     # Radio RX audio
-output_device=1    # Radio TX audio
+AUDIO_INPUT_DEVICE=2     # Radio RX audio
+AUDIO_OUTPUT_DEVICE=1    # Radio TX audio
 ```
 
 ### Audio Specifications
@@ -122,41 +121,43 @@ output_device=1    # Radio TX audio
 
 ### Complete Configuration Example
 ```ini
+# ============================================================================
+# PiRemote Configuration File
+# ============================================================================
 [MAIN]
-TYPE=CLIENT
+TYPE=CLIENT                 # Set to CLIENT or SERVER depending on deployment
 DEBUG=False
-LOG_LEVEL=INFO
+LOG_LEVEL=INFO              # Log level: DEBUG, INFO, WARNING, ERROR
+SAMPLE_RATE=48000           # Audio sample rate (Hz)
+CHANNELS=1                  # Number of audio channels (1 = mono)
+FRAME_SIZE=960              # Audio frame size (samples per packet)
 
+# ============================================================================
+# CLIENT CONFIGURATION (Front Panel Side)
+# ============================================================================
 [CLIENT]
 SERIAL_PORT=/dev/ttyAMA0
 SERIAL_BAUD=19200
-TRX_LIST=radio1.local:5000,radio2.local:5000,10.0.1.100:5000
+TRX_LIST=radio1.example.com:5000,radio2.example.com:5000
+GPIO_POWER_PIN=27                # Power control output pin
+GPIO_PWRBUTTON_PIN=17            # Power button input pin (with pull-up)
+SERVER_IP=192.168.1.100          # IP address of radio server
+AUDIO_TX_PORT=5001               # Send microphone audio to server
+AUDIO_RX_PORT=5002               # Receive radio audio from server
+AUDIO_INPUT_DEVICE=              # Microphone device index (empty = default)
+AUDIO_OUTPUT_DEVICE=             # Speaker device index (empty = default)
 
-[SERVER] 
+# ============================================================================
+# SERVER CONFIGURATION (Radio End)
+# ============================================================================
+[SERVER]
 SERIAL_PORT=/dev/ttyAMA0
 SERIAL_BAUD=19200
-LISTEN_PORT=5000
-
-[serial]
-port=/dev/ttyAMA0
-baudrate=19200
-
-[radio]
-listen_ip=0.0.0.0
-listen_port=5000
-
-[audio]
-server_ip=192.168.1.100
-tx_port=5001
-rx_port=5002
-sample_rate=48000
-channels=1
-frame_size=960
-input_device=
-output_device=
-
-[logging]
-level=INFO
+TCP_PORT=5000                    # TCP port for serial bridge
+AUDIO_TX_PORT=5001               # Receive microphone audio from clients
+AUDIO_RX_PORT=5002               # Send radio audio to clients
+AUDIO_INPUT_DEVICE=              # Radio RX audio input (empty = default)
+AUDIO_OUTPUT_DEVICE=             # Radio TX audio output (empty = default)
 ```
 
 ## System Management
