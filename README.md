@@ -11,7 +11,7 @@ A Raspberry Pi-based system for remotely extending commercial radio systems like
 - **GPIO Power Management** - Hardware power button control with status LED
 - **Low Latency** - Optimized for real-time radio communications
 
-## 📡 Architecture
+## Architecture
 
 ```
 ┌─────────────────┐    IP Network    ┌─────────────────┐
