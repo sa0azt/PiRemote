@@ -10,29 +10,30 @@ from opuslib import Encoder, Decoder, APPLICATION_AUDIO
 
 class AudioClient:
     def __init__(self, cfg):
-        if 'audio' not in cfg:
-            raise ValueError("Missing [audio] section in configuration")
+        if 'CLIENT' not in cfg:
+            raise ValueError("Missing [CLIENT] section in configuration")
             
-        sec = cfg['audio']
-        self.server_ip = sec.get('server_ip')
-        self.tx_port = sec.getint('tx_port', fallback=5001)  # Send mic to server
-        self.rx_port = sec.getint('rx_port', fallback=5002)  # Receive from server
-        self.sample_rate = sec.getint('sample_rate', fallback=48000)
-        self.channels = sec.getint('channels', fallback=1)
-        self.frame_size = sec.getint('frame_size', fallback=960)
+        client_sec = cfg['CLIENT']
+        main_sec = cfg['MAIN']
         
+        self.server_ip = client_sec.get('SERVER_IP')
+        self.tx_port = client_sec.getint('AUDIO_TX_PORT', fallback=5001)
+        self.rx_port = client_sec.getint('AUDIO_RX_PORT', fallback=5002)
+        self.sample_rate = main_sec.getint('SAMPLE_RATE', fallback=48000)
+        self.channels = main_sec.getint('CHANNELS', fallback=1)
+        self.frame_size = main_sec.getint('FRAME_SIZE', fallback=960)
 
-        self.input_device = sec.getint('input_device', fallback=None)
-        self.output_device = sec.getint('output_device', fallback=None)
+        self.input_device = client_sec.getint('AUDIO_INPUT_DEVICE', fallback=None)
+        self.output_device = client_sec.getint('AUDIO_OUTPUT_DEVICE', fallback=None)
         
         if not self.server_ip:
-            raise ValueError("server_ip not configured in [audio] section")
+            raise ValueError("SERVER_IP not configured in [CLIENT] section")
 
         self.encoder = Encoder(self.sample_rate, self.channels, APPLICATION_AUDIO)
         self.decoder = Decoder(self.sample_rate, self.channels)
         
-        self.tx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Send mic
-        self.rx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Receive speaker
+        self.tx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.rx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rx_socket.bind(('0.0.0.0', self.rx_port))
 
         self.p = pyaudio.PyAudio()
@@ -74,11 +75,8 @@ class AudioClient:
         while self.running:
             try:
                 pcm = self.input_stream.read(self.frame_size, exception_on_overflow=False)
-                
                 packet = self.encoder.encode(pcm, self.frame_size)
-                
                 self.tx_socket.sendto(packet, (self.server_ip, self.tx_port))
-                
             except Exception as e:
                 logging.error(f"TX audio error: {e}")
                 time.sleep(0.1)
@@ -131,31 +129,32 @@ class AudioClient:
 
 
 class AudioServer:
-    def __init__(self, config_path):
+    def __init__(self, config_path="/etc/piremote/piremote.conf"):
         cfg = configparser.ConfigParser()
         cfg.read(config_path)
         
-        if 'audio' not in cfg:
-            raise ValueError("Missing [audio] section in configuration")
+        if 'SERVER' not in cfg:
+            raise ValueError("Missing [SERVER] section in configuration")
             
-        sec = cfg["audio"]
-        self.listen_ip = sec.get("listen_ip", fallback="0.0.0.0")
-        self.tx_port = sec.getint("tx_port", fallback=5001)  # Receive mic from client
-        self.rx_port = sec.getint("rx_port", fallback=5002)  # Send radio audio to client
-        self.sample_rate = sec.getint("sample_rate", fallback=48000)
-        self.channels = sec.getint("channels", fallback=1)
-        self.frame_size = sec.getint("frame_size", fallback=960)
+        server_sec = cfg["SERVER"]
+        main_sec = cfg["MAIN"]
         
-        self.input_device = sec.getint('input_device', fallback=None)   # Radio RX
-        self.output_device = sec.getint('output_device', fallback=None) # Radio TX
+        self.tx_port = server_sec.getint("AUDIO_TX_PORT", fallback=5001)
+        self.rx_port = server_sec.getint("AUDIO_RX_PORT", fallback=5002)
+        self.sample_rate = main_sec.getint("SAMPLE_RATE", fallback=48000)
+        self.channels = main_sec.getint("CHANNELS", fallback=1)
+        self.frame_size = main_sec.getint("FRAME_SIZE", fallback=960)
+        
+        self.input_device = server_sec.getint('AUDIO_INPUT_DEVICE', fallback=None)
+        self.output_device = server_sec.getint('AUDIO_OUTPUT_DEVICE', fallback=None)
         
         self.encoder = Encoder(self.sample_rate, self.channels, APPLICATION_AUDIO)
         self.decoder = Decoder(self.sample_rate, self.channels)
         
-        self.tx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Receive mic
-        self.tx_socket.bind((self.listen_ip, self.tx_port))
+        self.tx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.tx_socket.bind(('0.0.0.0', self.tx_port))
         
-        self.rx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Send radio audio
+        self.rx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
         self.client_address = None
         self.client_lock = threading.Lock()
@@ -184,7 +183,7 @@ class AudioServer:
         self.tx_thread = None
         self.rx_thread = None
         
-        logging.info(f"Audio server initialized - TX on {self.listen_ip}:{self.tx_port}, RX on port {self.rx_port}")
+        logging.info(f"Audio server initialized - TX on port {self.tx_port}, RX on port {self.rx_port}")
 
     def start(self):
         self.running = True
@@ -227,7 +226,6 @@ class AudioServer:
         while self.running:
             try:
                 pcm = self.input_stream.read(self.frame_size, exception_on_overflow=False)
-                
                 packet = self.encoder.encode(pcm, self.frame_size)
                 
                 with self.client_lock:

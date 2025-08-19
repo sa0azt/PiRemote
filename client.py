@@ -14,9 +14,7 @@ import serial.threaded
 import RPi.GPIO as GPIO
 from audio import AudioClient
 
-
-io_pwr = 27            # Power control pin
-io_button = 17         # Power toggle button pin
+# Global variables
 serial_proto = None
 ser = None
 reader = None
@@ -27,11 +25,16 @@ trx_list = []
 current_trx_index = 0
 debug = False
 cfg = None
+io_pwr = 27
+io_button = 17
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
-GPIO.setup(io_pwr, GPIO.OUT)
-GPIO.setup(io_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+# GPIO setup function
+def setup_gpio():
+    global io_pwr, io_button
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
+    GPIO.setup(io_pwr, GPIO.OUT)
+    GPIO.setup(io_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 class SerialToNet(serial.threaded.Protocol):
     def __init__(self, debug=False):
@@ -90,10 +93,10 @@ class RadioBridge(threading.Thread):
             
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                    sock.settimeout(5.0)  # Connection timeout
+                    sock.settimeout(5.0)
                     sock.connect((host, port))
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                    sock.settimeout(1.0)  # Data timeout
+                    sock.settimeout(1.0)
                     
                     logging.info(f"Radio bridge connected to {host}:{port}")
                     self.ser_proto.set_socket(sock)
@@ -122,7 +125,7 @@ class RadioBridge(threading.Thread):
                 logging.warning(f"Failed to connect to {host}:{port}: {e}")
                 self._next_trx()
                 if not self.stop_event.is_set():
-                    time.sleep(2)  # Wait before trying next server
+                    time.sleep(2)
             except Exception as e:
                 logging.error(f"Radio bridge error: {e}")
                 if not self.stop_event.is_set():
@@ -267,7 +270,7 @@ def signal_handler(signum, frame):
     sys.exit(0)
 
 def main():
-    global cfg, trx_list, debug
+    global cfg, trx_list, debug, io_pwr, io_button
     
     parser = argparse.ArgumentParser(description="PiRemote client")
     parser.add_argument('-c', '--config', default='/etc/piremote/piremote.conf', 
@@ -284,7 +287,7 @@ def main():
         print(f"Failed to read config file {args.config}: {e}")
         sys.exit(1)
 
-    required_sections = ['MAIN', 'CLIENT', 'audio']
+    required_sections = ['MAIN', 'CLIENT']
     for section in required_sections:
         if section not in cfg:
             print(f"Missing required section [{section}] in config")
@@ -294,6 +297,11 @@ def main():
         trx_list = cfg.getlist('CLIENT', 'TRX_LIST')
         if not trx_list:
             raise ValueError("TRX_LIST cannot be empty")
+            
+        # Get GPIO pins from config
+        io_pwr = cfg.getint('CLIENT', 'GPIO_POWER_PIN', fallback=27)
+        io_button = cfg.getint('CLIENT', 'GPIO_PWRBUTTON_PIN', fallback=17)
+        
     except Exception as e:
         print(f"Configuration error: {e}")
         sys.exit(1)
@@ -312,6 +320,7 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
+        setup_gpio()
         GPIO.add_event_detect(io_button, GPIO.FALLING, 
                              callback=toggle_power, bouncetime=500)
 

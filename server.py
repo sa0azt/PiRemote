@@ -36,15 +36,15 @@ class SerialToNet(serial.threaded.Protocol):
         with self.lock:
             self.socket = None
 
-def radio_bridge(listen_ip, listen_port, serial_proto, stop_event):
+def radio_bridge(listen_port, serial_proto, stop_event):
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.settimeout(1.0)  # Allow periodic checking of stop_event
+    srv.settimeout(1.0)
     
     try:
-        srv.bind((listen_ip, listen_port))
+        srv.bind(('0.0.0.0', listen_port))
         srv.listen(1)
-        logging.info(f"Radio bridge listening on {listen_ip}:{listen_port}")
+        logging.info(f"Radio bridge listening on 0.0.0.0:{listen_port}")
 
         while not stop_event.is_set():
             try:
@@ -60,7 +60,7 @@ def radio_bridge(listen_ip, listen_port, serial_proto, stop_event):
                     except Exception:
                         pass
 
-                client.settimeout(1.0)  # Non-blocking recv with timeout
+                client.settimeout(1.0)
                 serial_proto.set_socket(client)
                 
                 while not stop_event.is_set():
@@ -73,13 +73,13 @@ def radio_bridge(listen_ip, listen_port, serial_proto, stop_event):
                         else:
                             logging.warning("Serial transport not available")
                     except socket.timeout:
-                        continue  # Check stop_event again
+                        continue
                     except Exception as e:
                         logging.error(f"Error receiving client data: {e}")
                         break
                         
             except socket.timeout:
-                continue  # Check stop_event again
+                continue
             except Exception as e:
                 if not stop_event.is_set():
                     logging.error(f"Radio bridge error: {e}")
@@ -116,7 +116,7 @@ def main():
         logging.error(f"Failed to read config: {e}")
         sys.exit(1)
 
-    log_level = cfg.get("logging", "level", fallback="INFO")
+    log_level = cfg.get("MAIN", "LOG_LEVEL", fallback="INFO")
     logging.basicConfig(
         level=getattr(logging, log_level.upper()),
         format="%(asctime)s %(levelname)s: %(message)s"
@@ -124,10 +124,9 @@ def main():
     logging.info("PiRemote Server starting...")
 
     try:
-        serial_port = cfg.get("serial", "port")
-        serial_baud = cfg.getint("serial", "baudrate")
-        radio_ip = cfg.get("radio", "listen_ip", fallback="0.0.0.0")
-        radio_port = cfg.getint("radio", "listen_port")
+        serial_port = cfg.get("SERVER", "SERIAL_PORT")
+        serial_baud = cfg.getint("SERVER", "SERIAL_BAUD")
+        tcp_port = cfg.getint("SERVER", "TCP_PORT")
     except Exception as e:
         logging.error(f"Configuration error: {e}")
         sys.exit(1)
@@ -164,7 +163,7 @@ def main():
 
         radio_thread = threading.Thread(
             target=radio_bridge,
-            args=(radio_ip, radio_port, serial_proto, stop_event),
+            args=(tcp_port, serial_proto, stop_event),
             daemon=True
         )
         radio_thread.start()
