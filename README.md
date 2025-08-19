@@ -2,7 +2,7 @@
 
 A Raspberry Pi-based system for remotely extending commercial radio systems like the Simoco SRM9000. Separates the front panel from the radio unit over IP networks with full duplex audio and serial control.
 
-![PiRemote Architecture](https://img.shields.io/badge/Architecture-Client%2FServer-blue) ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi-red) ![Audio](https://img.shields.io/badge/Audio-Opus%20Codec-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![PiRemote Architecture](https://img.shields.io/badge/Architecture-Client%2FServer-blue) ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi-red) ![Audio](https://img.shields.io/badge/Audio-Opus%20Codec-green) ![License](https://img.shields.io/badge/License-GPL%203.0-yellow)
 
 ## Features
 
@@ -255,4 +255,4 @@ LOG_LEVEL=DEBUG
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
